@@ -109,14 +109,14 @@ The Poshmark session remains on the collector computer. Supabase stores listing 
 - Production and Preview contain only the browser-safe Vite Supabase variables.
 - Vercel Authentication protects Preview deployments. Production relies on the app's Supabase sign-in and owner-scoped RLS.
 - The first production build returned HTTP 200 for the app shell, manifest, and service worker. It contained the same hashed JavaScript and CSS assets as the verified local production build.
+- Production sign-in loaded 187 cards and private images with no console warnings or errors. A Save action wrote through RLS, was confirmed in Postgres, and was restored to its original unsaved state.
 
 ## Next milestone
 
 Complete the phone field test:
 
-1. Sign in on the production URL and confirm the 187-card feed and private images.
-2. Test Save, Hide, and outbound Poshmark links from the deployed app.
-3. Install the PWA from Safari and repeat the browsing check.
-4. Run `npm run collect:cloud` for a fresh batch and confirm the hosted feed updates without redeployment.
+1. Install the PWA from Safari and repeat the browsing check.
+2. Test Hide and an outbound Poshmark link from the phone.
+3. Run `npm run collect:cloud` for a fresh batch and confirm the hosted feed updates without redeployment.
 
 Success means the installed phone app can browse the cached feed while the collector computer and Poshmark session are offline, then receive a later collector sync.
