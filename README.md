@@ -1,51 +1,60 @@
-# Poshmark companion prototype
+# Poshmark companion
 
-This local prototype collects a bounded batch from the signed-in Poshmark Suggested for You feed, stores listing metadata and cover photos, applies `preferences.json`, and serves a private photo grid. Tapping a photo opens the original Poshmark listing.
+A private companion feed for cached Poshmark suggestions. The collector opens the signed-in Suggested for You feed in Chrome, saves a bounded batch, applies personal filters, and presents a one-photo grid. Each card opens the original Poshmark listing.
 
-It requires Node.js 24 or newer and Google Chrome. Install the dependency once:
+The current prototype has two storage layers:
+
+- Local SQLite and cached images keep browsing available on the collector computer.
+- Supabase stores an owner-scoped cloud copy for the planned mobile PWA.
+
+See [Project status](docs/project-status.md) for the verified state, architecture, risks, and next milestone. Feed endpoint observations are documented in [Personalized feed probe](feed-findings.md).
+
+## Requirements
+
+- Node.js 24 or newer
+- Google Chrome
+- A signed-in Poshmark account during collection
+- A Supabase project for cloud sync
+
+Install dependencies:
 
 ```powershell
 npm install
 ```
 
-## Browse the saved feed
+## Commands
 
-From PowerShell:
+| Command | Purpose |
+| --- | --- |
+| `npm start` | Serve the saved local feed at `http://127.0.0.1:4173` |
+| `npm run collect` | Collect up to 200 listings into the local cache |
+| `npm run sync` | Upload the existing local cache to Supabase |
+| `npm run collect:cloud` | Collect a fresh batch, then sync it to Supabase |
+| `npm test` | Run the core and cloud-sync tests |
+| `npm run test:browser` | Render and scroll the local feed in Chrome |
 
-```powershell
-npm start
+The collector uses a temporary browser context and does not save Poshmark cookies or passwords. It stops after 200 unique listings, 12 scrolls, ten minutes, repeated empty scrolls, or an access response requiring attention.
+
+## Supabase configuration
+
+Copy `.env.example` to `.env.local` and fill in:
+
+```dotenv
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SECRET_KEY=
+SUPABASE_USER_ID=your-auth-user-uuid
 ```
 
-Then open `http://127.0.0.1:4173`. The server binds only to the local computer.
+Keep `.env.local` on the collector computer. It is ignored by Git. The secret key must never appear in browser code.
 
-## Refresh the cache
+Database migrations live in `supabase/migrations`. They create owner-scoped tables for collection batches, listings, listing state, and filter rules, plus a private `listing-images` bucket.
 
-Open another PowerShell window:
+## Filtering
 
-```powershell
-npm run collect
-```
+`preferences.json` is the current rule source. Listings above $150 are excluded. The configured 53-brand blocklist uses structured brand data when available and title matching as a fallback when brand data is missing. Unknown and vintage labels remain visible. Source order is preserved.
 
-Sign in in the temporary Chrome window. Collection starts when the feed appears. The browser closes after the bounded run. Existing cached listings remain available if collection stops early.
+## Repository boundaries
 
-The collector does not save Poshmark cookies or passwords. It currently aims for 200 unique listings and stops after 12 scrolls, ten minutes, repeated empty scrolls, or an access response requiring attention.
+Git excludes Supabase secrets, Poshmark session data, SQLite data, cached images, probe output, screenshots, dependencies, and local project notes.
 
-## Verify core behavior
-
-```powershell
-npm test
-```
-
-The tests cover the inclusive $150 limit, factory/mainline brand distinctions, title fallback, deduplication, and filtering through the local API.
-
-## Privacy and deployment
-
-The SQLite database, cached images, probe output, screenshots, and local project state are ignored by Git. The app binds to `127.0.0.1`, so it is available only on the computer running it.
-
-The current collector and cache are designed for a local computer. A hosted deployment needs a separate authenticated collector and durable hosted storage.
-
-## Supabase
-
-The initial cloud schema is in `supabase/migrations/20261009_initial_schema.sql`. It creates private, owner-scoped tables for collection batches, listings, listing state, and filter rules, plus a private `listing-images` bucket. Copy `.env.example` to `.env.local` when cloud sync is enabled. Keep `SUPABASE_SECRET_KEY` on the collector computer and never place it in browser code.
-
-After creating your Supabase Auth user, place its UUID in `SUPABASE_USER_ID`. Run `npm run sync` to upload the existing SQLite cache, or `npm run collect:cloud` to collect a fresh batch and sync it. The local cache remains available if cloud sync fails.
+This project relies on undocumented Poshmark feed behavior and browser automation. Selectors, response fields, pagination, access controls, or account enforcement can change. Poshmark's terms prohibit scraping and automated collection, so collection carries account and access risk.

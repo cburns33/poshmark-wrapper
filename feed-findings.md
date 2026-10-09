@@ -1,5 +1,7 @@
 # Personalized feed probe
 
+This document records the initial research probe. The bounded collector, filtering, local feed, and Supabase cache described as future work below have since been implemented. Current status is maintained in `docs/project-status.md`.
+
 Observed October 9, 2026 in a signed-in, temporary Chrome session through Playwright.
 
 The normal page requested `/vm-rest/users/{userId}/feed/personalized_v2` and received HTTP 200. No direct HTTP client, cookie export, endpoint replay, or anti-bot bypass was used by the successful probe.
