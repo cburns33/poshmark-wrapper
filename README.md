@@ -36,6 +36,7 @@ npm install
 | `npm run collect:cloud` | Collect a fresh batch, then sync it to Supabase |
 | `npm test` | Run the core and cloud-sync tests |
 | `npm run test:browser` | Check the signed-out mobile layout in Chrome while a server is running on port 4173 |
+| `npm run test:interface` | Verify UI states and accessibility with five synthetic listings, while the dev server runs on port 5174. Override with `BASE_URL` |
 
 The collector uses a temporary browser context and does not save Poshmark cookies or passwords. It stops after 200 unique listings, 12 scrolls, ten minutes, repeated empty scrolls, or an access response requiring attention.
 
@@ -58,6 +59,8 @@ Database migrations live in `supabase/migrations`. They create owner-scoped tabl
 ## PWA behavior
 
 The browser signs in with the single Supabase Auth account. It loads up to 1,000 cached listings, applies the current cloud filter rules, and creates one-hour signed URLs for private cover images. The All picks and Saved views work from the cached dataset. Save, hide, viewport view, and outbound open actions write to `user_listing_state`.
+
+Hide offers a persistent Undo action for consecutive hides in the current session. Reloading the page ends that Undo history. Refresh reloads the existing cloud cache; run the collector to gather new Poshmark listings. The interface review and verification record is in [Design review](docs/interface-review.md).
 
 For a production deployment, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel. The collector-only secret variables stay on the collector computer.
 

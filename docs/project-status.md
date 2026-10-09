@@ -113,6 +113,8 @@ The Poshmark session remains on the collector computer. Supabase stores listing 
 
 ## Next milestone
 
+The October 9 interface review used Jakub Krehel's better-interface and its six domain skills. Implemented changes include contrast, 44px controls, visible mobile Poshmark-link cues, focus preservation, persistent session Undo Hide, card-local errors, recovery copy, loading states, and an empty-Saved exit. See [Interface review](interface-review.md) for the ranked findings, coverage, verification, and limitations. Seven core tests, the production build, and the fixture-based interface checks pass, with zero axe violations in the checked states.
+
 Complete the phone field test:
 
 1. Install the PWA from Safari and repeat the browsing check.

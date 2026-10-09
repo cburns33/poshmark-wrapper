@@ -13,7 +13,8 @@
     "collect:cloud": "node --env-file=.env.local collect.cjs --sync",
     "sync": "node --env-file=.env.local sync.cjs",
     "test": "node --test test/*.test.cjs",
-    "test:browser": "node test/browser-smoke.cjs"
+    "test:browser": "node test/browser-smoke.cjs",
+    "test:interface": "node --env-file=.env.local test/interface-smoke.cjs"
   },
   "engines": {
     "node": "24.x"
@@ -23,6 +24,7 @@
     "playwright": "1.62.1"
   },
   "devDependencies": {
+    "axe-core": "4.14.0",
     "vite": "8.3.4"
   }
 }

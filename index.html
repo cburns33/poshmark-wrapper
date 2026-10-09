@@ -17,10 +17,11 @@
       <h1 id="auth-title">Poshmark picks</h1>
       <p class="auth-copy">Sign in to browse the listings collected for you.</p>
       <form id="sign-in-form">
+        <p class="form-hint">Use your companion account. Both fields are required.</p>
         <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="username" required>
+        <input id="email" name="email" type="email" autocomplete="username" spellcheck="false" aria-describedby="auth-error" required>
         <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <input id="password" name="password" type="password" autocomplete="current-password" aria-describedby="auth-error" required>
         <button class="primary" type="submit">Sign in</button>
       </form>
       <p id="auth-error" class="error" role="alert" hidden></p>
@@ -30,8 +31,8 @@
       <header>
         <div>
           <p class="eyebrow">Your personal edit</p>
-          <h1>Poshmark picks</h1>
-          <p id="rules">Loading your preferences...</p>
+          <h1 id="feed-title" tabindex="-1">Poshmark picks</h1>
+          <p id="rules">Loading your preferences…</p>
         </div>
         <div class="header-actions">
           <button id="reload" type="button">Refresh <span aria-hidden="true">↻</span></button>
@@ -39,19 +40,30 @@
         </div>
       </header>
       <div class="feed-info">
-        <p id="summary" role="status" aria-live="polite">Opening your feed...</p>
-        <span class="hint">Tap a photo to view on Poshmark <span aria-hidden="true">↗</span></span>
+        <p id="summary" role="status">Opening your feed…</p>
+        <span class="hint">Photos open on Poshmark <span aria-hidden="true">↗</span></span>
       </div>
       <nav class="view-switcher" aria-label="Listing view">
         <button class="view-button active" data-view="all" type="button" aria-pressed="true">All picks</button>
         <button class="view-button" data-view="saved" type="button" aria-pressed="false">Saved</button>
       </nav>
-      <section id="grid" class="grid" aria-label="Filtered Poshmark listings"></section>
+      <p id="loading" class="loading" hidden>Loading your collected listings…</p>
+      <div id="feed-error" class="error" hidden>
+        <p id="feed-error-message" role="alert"></p>
+        <button id="retry-feed" type="button">Try again</button>
+      </div>
+      <p id="error" class="error" role="alert" hidden></p>
+      <section id="grid" class="grid" aria-label="Filtered Poshmark listings" tabindex="-1" aria-busy="false"></section>
       <div id="empty" class="empty" hidden>
         <h2>Your next finds will appear here.</h2>
         <p>Run the collector on your computer to replenish this feed.</p>
+        <button id="empty-action" type="button">Browse all picks</button>
       </div>
-      <p id="error" class="error" role="alert" hidden></p>
+      <p id="action-status" class="sr-only" role="status"></p>
+      <div id="undo-notice" class="undo-notice" hidden>
+        <span id="undo-message" role="status"></span>
+        <button id="undo-hide" type="button">Undo Hide</button>
+      </div>
       <footer>Prices reflect the last collection. Confirm price and availability on Poshmark.</footer>
     </section>
   </main>
