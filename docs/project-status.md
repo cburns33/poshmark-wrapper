@@ -111,9 +111,13 @@ The Poshmark session remains on the collector computer. Supabase stores listing 
 - The first production build returned HTTP 200 for the app shell, manifest, and service worker. It contained the same hashed JavaScript and CSS assets as the verified local production build.
 - Production sign-in loaded 187 cards and private images with no console warnings or errors. A Save action wrote through RLS, was confirmed in Postgres, and was restored to its original unsaved state.
 
-## Next milestone
+## Completed interface milestone
 
 The October 9 interface review used Jakub Krehel's better-interface and its six domain skills. Implemented changes include contrast, 44px controls, visible mobile Poshmark-link cues, focus preservation, persistent session Undo Hide, card-local errors, recovery copy, loading states, and an empty-Saved exit. See [Interface review](interface-review.md) for the ranked findings, coverage, verification, and limitations. Seven core tests, the production build, and the fixture-based interface checks pass, with zero axe violations in the checked states.
+
+Implementation commit `3091e33` is deployed on production. Documentation commit `c30ebe7` recorded the deployment verification and was pushed to GitHub. The authenticated production check loaded 187 picks and private images, confirmed live Hide and Undo through a reload, and captured no browser warnings or errors. Source and deployment are current; documentation updates do not require an app redeployment.
+
+## Next milestone
 
 Complete the phone field test:
 
@@ -121,4 +125,6 @@ Complete the phone field test:
 2. Test Hide and an outbound Poshmark link from the phone.
 3. Run `npm run collect:cloud` for a fresh batch and confirm the hosted feed updates without redeployment.
 
-Success means the installed phone app can browse the cached feed while the collector computer and Poshmark session are offline, then receive a later collector sync.
+Success means the installed phone app can browse the hosted cache while the collector computer and Poshmark session are offline, then receive a later collector sync. The phone still needs internet access to Supabase. The service worker caches the app shell; full offline listing and image support has not been implemented.
+
+Physical iPhone safe-area behavior and screen-reader speech remain unchecked. Card-density variants are an optional later design task. The next functional priority is the phone and replenishment check.

@@ -68,6 +68,8 @@ For a production deployment, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHA
 
 Production runs at [poshmark-wrapper.vercel.app](https://poshmark-wrapper.vercel.app). Vercel Authentication protects Preview deployments. Production exposes the static sign-in shell, while Supabase Auth, RLS, and private Storage policies protect listing data and images.
 
+The October 9 interface improvements are deployed from commit `3091e33`. Current verification and remaining phone checks are recorded in [Project status](docs/project-status.md). New listing batches reach the app through `npm run collect:cloud` and Refresh, without a frontend deployment. Browsing the hosted cache requires internet access to Supabase; the collector computer can be offline.
+
 ## Filtering
 
 `preferences.json` is the current rule source. Listings above $150 are excluded. The configured 53-brand blocklist uses structured brand data when available and title matching as a fallback when brand data is missing. Unknown and vintage labels remain visible. Source order is preserved.
