@@ -57,3 +57,5 @@ Not verified:
 Approve for the inspected scope. All reported findings were implemented and the relevant checks passed. Physical phone and screen-reader checks remain field verification.
 
 Undo history lasts for the current page session. Reloading ends that history. Refresh reloads collected data; replenishment still runs through the collector.
+
+Production verification: implementation commit 3091e33 deployed through GitHub to https://poshmark-wrapper.vercel.app. Deployment dpl_3TxiYGARe1FAs8RnuPeJKRjZ6xpW is Ready, with a 5-second build. The authenticated mobile feed loaded 187 picks and private images with 44px actions, no horizontal overflow, and zero captured console warnings or errors. A live Hide and Undo restored the first item; a reload confirmed 187 picks again. The signed-out production smoke check passed. The bounded Vercel error-log query returned no logs; browser health was checked through the app itself.
