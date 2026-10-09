@@ -70,6 +70,8 @@ Production runs at [poshmark-wrapper.vercel.app](https://poshmark-wrapper.vercel
 
 The October 9 interface improvements are deployed from commit `3091e33`. Current verification and remaining phone checks are recorded in [Project status](docs/project-status.md). New listing batches reach the app through `npm run collect:cloud` and Refresh, without a frontend deployment. Browsing the hosted cache requires internet access to Supabase; the collector computer can be offline.
 
+The [cloud-browser probe](docs/cloud-browser-probe.md) verified Poshmark sign-in persistence across two Browserbase sessions. It is a separate feasibility check; the hosted collection job and on-demand app action are still to be built.
+
 ## Filtering
 
 `preferences.json` is the current rule source. Listings above $150 are excluded. The configured 53-brand blocklist uses structured brand data when available and title matching as a fallback when brand data is missing. Unknown and vintage labels remain visible. Source order is preserved.

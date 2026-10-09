@@ -1,0 +1,9 @@
+# Browserbase free-tier probe
+
+On October 9, 2026, two Browserbase cloud browser sessions used one saved Context. The first session reached the signed-in Poshmark feed and showed 36 cards. After it closed, a separate session opened the same personalized feed without another sign-in and showed 48 cards. These were bounded access checks; they did not collect or sync a listing batch. The PC ran the probe controller, so this does not yet prove an on-demand collection flow while the PC is off.
+
+The repeatable probe is `cloud-probe.cjs`. Set `BROWSERBASE_API_KEY` in ignored `.env.local`, then run `node --env-file=.env.local cloud-probe.cjs login`. Open the printed session ID at `https://www.browserbase.com/sessions/<id>`, choose Live View, and sign in to Poshmark if needed. The probe closes after cards appear. Run `node --env-file=.env.local cloud-probe.cjs verify` to test a new session using the saved Context. The Context ID is stored in ignored `probe-output/browserbase-context.json`. The key, cookies, listing contents, and live-view token are not committed.
+
+The initial live probe succeeded on Browserbase's free tier. Its published limit is one browser hour per month with a 15-minute limit per session. The free tier has no CAPTCHA solving. The two-session result establishes access and login persistence for this date, not sustained reliability or permission from Poshmark. A later Poshmark challenge or expired login may require manual sign-in. See [Browserbase pricing](https://www.browserbase.com/pricing) and [Contexts documentation](https://docs.browserbase.com/platform/browser/core-features/contexts).
+
+Next implementation milestone: adapt the collector to connect to Browserbase, collect a bounded feed batch, and sync it to Supabase from a hosted job. Then connect a protected app action to trigger the job and show collection status. Confirm collection works with the PC off before scheduling it.

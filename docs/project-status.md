@@ -119,6 +119,8 @@ Implementation commit `3091e33` is deployed on production. Documentation commit 
 
 ## Next milestone
 
+An October 9 cloud-browser probe confirmed that two Browserbase sessions can use a saved Poshmark login. The first reached 36 feed cards, and the second reached 48 cards without another sign-in. See [Cloud-browser probe](cloud-browser-probe.md). Full PC-off refresh still requires hosted collection and sync; the probe did not import listings.
+
 Complete the phone field test:
 
 1. Install the PWA from Safari and repeat the browsing check.
