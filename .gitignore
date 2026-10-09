@@ -2,6 +2,9 @@ probe-output/
 node_modules/
 data/
 test-output/
+output/
+.playwright-cli/
+dist/
 AGENTS.md
 .env
 .env.local

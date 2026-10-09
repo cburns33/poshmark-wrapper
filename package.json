@@ -4,7 +4,11 @@
   "private": true,
   "description": "A local, personal feed for cached Poshmark suggestions.",
   "scripts": {
-    "start": "node server.cjs",
+    "start": "vite --host 127.0.0.1",
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "start:local-cache": "node server.cjs",
     "collect": "node collect.cjs",
     "collect:cloud": "node --env-file=.env.local collect.cjs --sync",
     "sync": "node --env-file=.env.local sync.cjs",
@@ -15,6 +19,10 @@
     "node": ">=24"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.117.3",
     "playwright": "1.62.1"
+  },
+  "devDependencies": {
+    "vite": "8.3.4"
   }
 }

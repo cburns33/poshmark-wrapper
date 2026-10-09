@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8f7f4">
+  <meta name="description" content="A private feed of cached Poshmark suggestions.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <title>Poshmark picks</title>
+</head>
+<body>
+  <main>
+    <section id="auth" class="auth-panel" aria-labelledby="auth-title">
+      <p class="eyebrow">Your personal edit</p>
+      <h1 id="auth-title">Poshmark picks</h1>
+      <p class="auth-copy">Sign in to browse the listings collected for you.</p>
+      <form id="sign-in-form">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button class="primary" type="submit">Sign in</button>
+      </form>
+      <p id="auth-error" class="error" role="alert" hidden></p>
+    </section>
+
+    <section id="feed" hidden>
+      <header>
+        <div>
+          <p class="eyebrow">Your personal edit</p>
+          <h1>Poshmark picks</h1>
+          <p id="rules">Loading your preferences...</p>
+        </div>
+        <div class="header-actions">
+          <button id="reload" type="button">Refresh <span aria-hidden="true">↻</span></button>
+          <button id="sign-out" type="button">Sign out</button>
+        </div>
+      </header>
+      <div class="feed-info">
+        <p id="summary" role="status" aria-live="polite">Opening your feed...</p>
+        <span class="hint">Tap a photo to view on Poshmark <span aria-hidden="true">↗</span></span>
+      </div>
+      <nav class="view-switcher" aria-label="Listing view">
+        <button class="view-button active" data-view="all" type="button" aria-pressed="true">All picks</button>
+        <button class="view-button" data-view="saved" type="button" aria-pressed="false">Saved</button>
+      </nav>
+      <section id="grid" class="grid" aria-label="Filtered Poshmark listings"></section>
+      <div id="empty" class="empty" hidden>
+        <h2>Your next finds will appear here.</h2>
+        <p>Run the collector on your computer to replenish this feed.</p>
+      </div>
+      <p id="error" class="error" role="alert" hidden></p>
+      <footer>Prices reflect the last collection. Confirm price and availability on Poshmark.</footer>
+    </section>
+  </main>
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>

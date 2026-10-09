@@ -29,8 +29,18 @@ Build a private feed that periodically caches a large batch of Poshmark Suggeste
 
 - SQLite stores listing metadata and collection-run status.
 - Cover images are cached under the ignored `data/images` directory.
-- `server.cjs` serves the feed only on `127.0.0.1:4173`.
-- The interface shows a single cover image and links each card to its Poshmark listing.
+- `server.cjs` can serve the production PWA and local cache API on `127.0.0.1:4173` after a build.
+
+### Mobile PWA
+
+- Vite builds a framework-free mobile web app for static hosting.
+- Supabase email and password auth protects the single-owner feed.
+- Authenticated RLS queries load listings, rules, collection status, and user state.
+- Private cover images use one-hour signed Storage URLs.
+- The app applies the $150 limit, 53-brand blocklist, missing-brand title fallback, and source order.
+- Cards provide Save and Hide actions and open the original Poshmark listing.
+- Viewport exposure and outbound opens are recorded in `user_listing_state`.
+- A web manifest and same-origin shell service worker support installation as a PWA.
 
 ### Supabase
 
@@ -58,7 +68,9 @@ The first cloud sync completed on October 9, 2026:
 | Title fallback | Enabled |
 | Anonymous listing access | Disabled |
 
-Six automated tests pass. They cover the price boundary, factory and mainline brand distinctions, title fallback, local deduplication and API filtering, cloud configuration validation, and Supabase record mapping. The last browser smoke test rendered 187 eligible cards from the 200-listing cache and made zero external requests while browsing.
+Seven automated tests pass. They cover the price boundary, factory and mainline brand distinctions, title fallback, local deduplication and API filtering, the browser filter, cloud configuration validation, and Supabase record mapping.
+
+The authenticated production build was verified at a 390 by 844 viewport. It rendered 187 eligible cards from the 200-listing cache, loaded private cover images, produced no browser console errors, and retained the source order. A save action wrote through RLS and was reverted. Viewport tracking created eight viewed-state rows. The signed-out browser smoke test confirms the sign-in form, mobile width, and console state.
 
 Supabase's database and RLS security checks are clear. The Auth advisor reports that leaked-password protection is disabled. The current project controls may not provide access to that setting, and this warning is accepted for the private prototype.
 
@@ -70,15 +82,15 @@ Signed-in Poshmark feed
         v
 Local Playwright collector
         |
-        +--> SQLite and local cover images --> local feed
+        +--> SQLite and local cover images --> collector source cache
         |
-        +--> Supabase Postgres and Storage --> planned authenticated PWA
+        +--> Supabase Postgres and Storage --> authenticated PWA
                                                     |
                                                     v
-                                            Poshmark listing link
+                                          Poshmark listing link
 ```
 
-The Poshmark session remains on the collector computer. Supabase stores listing metadata and cached cover images. The browser frontend will use a publishable key and authenticated RLS access. The Supabase secret key remains limited to the collector.
+The Poshmark session remains on the collector computer. Supabase stores listing metadata, interaction state, filter rules, and cached cover images. The browser frontend uses a publishable key and authenticated RLS access. The Supabase secret key remains limited to the collector.
 
 ## Known constraints
 
@@ -86,19 +98,17 @@ The Poshmark session remains on the collector computer. Supabase stores listing 
 - Sustained unattended collection and account-blocking behavior remain untested.
 - Poshmark's terms prohibit scraping and automated collection. Personal use does not remove account or access risk.
 - Five listings in the first cache lacked a successfully cached cover image.
-- The cloud frontend has not been connected to Supabase or deployed.
+- The PWA has not been deployed to Vercel.
 - Companion interactions do not update Poshmark's recommendation system.
 
 ## Next milestone
 
-Build the authenticated mobile PWA against the existing Supabase cache:
+Deploy the verified PWA to Vercel:
 
-1. Add Supabase sign-in for the single owner account.
-2. Query eligible listings through RLS.
-3. Generate signed URLs for private cover images.
-4. Preserve feed order and link cards to Poshmark.
-5. Record viewed, hidden, saved, and opened state.
-6. Verify the feed on iPhone-sized screens while the collector is stopped.
-7. Deploy the frontend to Vercel after local end-to-end verification.
+1. Connect the GitHub repository to a Vercel project using the Vite preset.
+2. Set the two browser-safe Vite Supabase variables for Preview and Production.
+3. Verify sign-in, 187-card loading, private images, Save, Hide, and Poshmark links on the deployed URL.
+4. Add the deployed site URL to Supabase Auth URL configuration.
+5. Install the PWA from Safari on the iPhone and repeat the browsing check.
 
-Success means the phone can browse hundreds of cached listings without contacting Poshmark during each swipe, while a failed or stopped collector leaves the existing feed usable.
+Success means the phone can browse the cached feed while the collector computer and Poshmark session are offline.

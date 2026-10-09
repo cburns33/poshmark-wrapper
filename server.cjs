@@ -8,7 +8,7 @@ function createServer(store = openStore()) {
   return http.createServer((request, response) => {
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('Referrer-Policy', 'no-referrer');
-    response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'");
+    response.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https://umubcxkoxvzxucpwrwmm.supabase.co; connect-src 'self' https://umubcxkoxvzxucpwrwmm.supabase.co; base-uri 'none'; frame-ancestors 'none'");
     if (request.method !== 'GET' && request.method !== 'HEAD') { response.writeHead(405).end(); return; }
     const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
     try {
@@ -37,17 +37,21 @@ function createServer(store = openStore()) {
         response.end(request.method === 'HEAD' ? undefined : body);
         return;
       }
-      const staticFiles = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'] };
       let filename;
       let type;
-      if (staticFiles[pathname]) {
-        const file = staticFiles[pathname];
-        filename = path.join(__dirname, 'public', file[0]);
-        type = file[1];
-      } else if (/^\/images\/[a-f0-9]{24}\.(jpg|png|webp|gif)$/.test(pathname)) {
+      if (/^\/images\/[a-f0-9]{24}\.(jpg|png|webp|gif)$/.test(pathname)) {
         filename = path.join(store.directory, 'images', path.basename(pathname));
         type = { '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif' }[path.extname(filename)];
-      } else { response.writeHead(404).end(); return; }
+      } else {
+        const relative = pathname === '/' ? 'index.html' : pathname.slice(1);
+        filename = path.resolve(__dirname, 'dist', relative);
+        const staticRoot = path.resolve(__dirname, 'dist') + path.sep;
+        if (!filename.startsWith(staticRoot)) { response.writeHead(404).end(); return; }
+        type = {
+          '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+          '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json'
+        }[path.extname(filename)] || 'application/octet-stream';
+      }
       if (!fs.existsSync(filename)) { response.writeHead(404).end(); return; }
       response.writeHead(200, { 'Content-Type': type, 'Cache-Control': pathname.startsWith('/images/') ? 'private, max-age=3600' : 'no-cache' });
       if (request.method === 'HEAD') response.end();

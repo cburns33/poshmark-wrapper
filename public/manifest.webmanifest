@@ -1,0 +1,12 @@
+{
+  "name": "Poshmark picks",
+  "short_name": "Posh picks",
+  "description": "A private feed of cached Poshmark suggestions.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f7f4",
+  "theme_color": "#f8f7f4",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
