@@ -72,6 +72,8 @@ The October 9 interface improvements are deployed from commit `3091e33`. Current
 
 The [cloud-browser probe](docs/cloud-browser-probe.md) verified Poshmark sign-in persistence across two Browserbase sessions. It is a separate feasibility check; the hosted collection job and on-demand app action are still to be built.
 
+Cloud collection work is paused until the next usage window. Resume from the [project handoff](docs/project-status.md#next-milestone): build and verify a bounded hosted collection and Supabase sync, then connect an owner-protected app trigger. The current Refresh button reloads cached picks and does not request new listings.
+
 ## Filtering
 
 `preferences.json` is the current rule source. Listings above $150 are excluded. The configured 53-brand blocklist uses structured brand data when available and title matching as a fallback when brand data is missing. Unknown and vintage labels remain visible. Source order is preserved.

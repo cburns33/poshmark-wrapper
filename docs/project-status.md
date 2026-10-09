@@ -121,6 +121,10 @@ Implementation commit `3091e33` is deployed on production. Documentation commit 
 
 An October 9 cloud-browser probe confirmed that two Browserbase sessions can use a saved Poshmark login. The first reached 36 feed cards, and the second reached 48 cards without another sign-in. See [Cloud-browser probe](cloud-browser-probe.md). Full PC-off refresh still requires hosted collection and sync; the probe did not import listings.
 
+Work is paused for the next usage window. The next task is a bounded end-to-end cloud collection: connect the existing collector to Browserbase, write one batch and its cover images to Supabase, and verify that the hosted PWA shows new picks after Refresh. Then add an owner-protected app trigger and visible job status so the phone can start that collection while the PC is off. Keep the existing Refresh behavior distinct from starting collection until that trigger works. Do not spend another session repeating the login-persistence probe unless the saved Context fails. The Browserbase key and Context ID are already stored in ignored local files; never commit them. See [Cloud-browser probe](cloud-browser-probe.md) for commands and evidence.
+
+Success for the cloud milestone: a signed-in owner starts a bounded collection from the deployed app with the PC off, the job completes or reports a clear failure, Supabase receives a new batch, and Refresh displays its eligible listings. Test the collection and sync before wiring the app button. This has not been implemented or verified yet.
+
 Complete the phone field test:
 
 1. Install the PWA from Safari and repeat the browsing check.
