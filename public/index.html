@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your Poshmark picks</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div><p class="eyebrow">Your personal edit</p><h1>Poshmark picks</h1><p id="rules">Loading your preferences…</p></div>
+      <button id="reload" type="button">Reload saved feed <span aria-hidden="true">↻</span></button>
+    </header>
+    <div class="feed-info"><p id="summary" role="status" aria-live="polite">Opening your cache…</p><span class="hint">Tap a photo to view on Poshmark <span aria-hidden="true">↗</span></span></div>
+    <p id="collection-status" class="collection-status" hidden></p>
+    <section id="grid" class="grid" aria-label="Filtered Poshmark listings"></section>
+    <div id="empty" class="empty" hidden><h2>Your next finds will appear here.</h2><p>Start the collector and sign in to Poshmark. This page will update as listings arrive.</p></div>
+    <p id="error" class="error" role="alert" hidden></p>
+    <footer>Prices reflect the last collection. Confirm price and availability on Poshmark.</footer>
+  </main>
+</body>
+</html>

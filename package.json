@@ -1,0 +1,18 @@
+{
+  "name": "poshmark-wrapper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local, personal feed for cached Poshmark suggestions.",
+  "scripts": {
+    "start": "node server.cjs",
+    "collect": "node collect.cjs",
+    "test": "node --test test/core.test.cjs",
+    "test:browser": "node test/browser-smoke.cjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "playwright": "1.62.1"
+  }
+}
