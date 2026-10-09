@@ -104,7 +104,7 @@ The Poshmark session remains on the collector computer. Supabase stores listing 
 ## Vercel deployment
 
 - Project: `cburns33s-projects/poshmark-wrapper`
-- Production: `https://poshmark-wrapper-cburns33s-projects.vercel.app`
+- Production: `https://poshmark-wrapper.vercel.app`
 - Framework preset: Vite
 - Production and Preview contain only the browser-safe Vite Supabase variables.
 - Vercel Authentication protects Preview deployments. Production relies on the app's Supabase sign-in and owner-scoped RLS.

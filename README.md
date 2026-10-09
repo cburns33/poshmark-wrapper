@@ -63,7 +63,7 @@ For a production deployment, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHA
 
 ## Deployment
 
-Production runs at [poshmark-wrapper-cburns33s-projects.vercel.app](https://poshmark-wrapper-cburns33s-projects.vercel.app). Vercel Authentication protects Preview deployments. Production exposes the static sign-in shell, while Supabase Auth, RLS, and private Storage policies protect listing data and images.
+Production runs at [poshmark-wrapper.vercel.app](https://poshmark-wrapper.vercel.app). Vercel Authentication protects Preview deployments. Production exposes the static sign-in shell, while Supabase Auth, RLS, and private Storage policies protect listing data and images.
 
 ## Filtering
 
