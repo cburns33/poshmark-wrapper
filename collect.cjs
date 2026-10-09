@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { openStore } = require('./lib/store.cjs');
 const { createFilter } = require('./lib/filters.cjs');
+const { syncToSupabase } = require('./lib/supabase-sync.cjs');
 
 const TARGET = 200;
 const MAX_SCROLLS = 12;
@@ -134,7 +135,16 @@ async function main() {
     const status = stopReason ? 'needs_attention' : rows.length >= TARGET ? 'complete' : 'partial';
     const detail = stopReason || (status === 'complete' ? 'Collection complete.' : 'Stopped at the collection limit or after the feed stopped yielding new items.');
     store.status(runId, status, detail, rows.length, true);
-    console.log(JSON.stringify({ event: 'finished', status, collected: rows.length, batches, cachedImages: imageCount, reasons, detail }));
+    let cloud = null;
+    if (process.argv.includes('--sync')) {
+      try {
+        cloud = await syncToSupabase({ records: store.list(), run: store.latestRun(), preferences: JSON.parse(fs.readFileSync(path.join(__dirname, 'preferences.json'), 'utf8')), directory: store.directory });
+      } catch (error) {
+        cloud = { status: 'failed', detail: error.message };
+        process.exitCode = 1;
+      }
+    }
+    console.log(JSON.stringify({ event: 'finished', status, collected: rows.length, batches, cachedImages: imageCount, reasons, detail, cloud }));
   } catch (error) {
     store.status(runId, 'needs_attention', 'Collection stopped: ' + error.message.split('\n')[0], collected.size, true);
     console.error('Collection stopped. Saved listings are intact. ' + error.message.split('\n')[0]);

@@ -47,3 +47,5 @@ The current collector and cache are designed for a local computer. A hosted depl
 ## Supabase
 
 The initial cloud schema is in `supabase/migrations/20261009_initial_schema.sql`. It creates private, owner-scoped tables for collection batches, listings, listing state, and filter rules, plus a private `listing-images` bucket. Copy `.env.example` to `.env.local` when cloud sync is enabled. Keep `SUPABASE_SECRET_KEY` on the collector computer and never place it in browser code.
+
+After creating your Supabase Auth user, place its UUID in `SUPABASE_USER_ID`. Run `npm run sync` to upload the existing SQLite cache, or `npm run collect:cloud` to collect a fresh batch and sync it. The local cache remains available if cloud sync fails.

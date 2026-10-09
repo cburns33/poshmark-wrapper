@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.cjs",
     "collect": "node collect.cjs",
-    "test": "node --test test/core.test.cjs",
+    "collect:cloud": "node --env-file=.env.local collect.cjs --sync",
+    "sync": "node --env-file=.env.local sync.cjs",
+    "test": "node --test test/*.test.cjs",
     "test:browser": "node test/browser-smoke.cjs"
   },
   "engines": {
