@@ -1,6 +1,6 @@
 # Poshmark companion
 
-A private companion feed for cached Poshmark suggestions. The collector opens the signed-in Suggested for You feed in Chrome and saves a bounded batch. An authenticated mobile PWA applies personal filters and presents a one-photo grid. Each card opens the original Poshmark listing.
+A private companion feed for cached Poshmark suggestions. The collector opens the signed-in Suggested for You feed in local Chrome or Browserbase and saves a bounded batch. An authenticated mobile PWA applies personal filters and presents a one-photo grid. Each card opens the original Poshmark listing.
 
 The current prototype has two storage layers:
 
@@ -38,7 +38,7 @@ npm install
 | `npm run test:browser` | Check the signed-out mobile layout in Chrome while a server is running on port 4173 |
 | `npm run test:interface` | Verify UI states and accessibility with five synthetic listings, while the dev server runs on port 5174. Override with `BASE_URL` |
 
-The collector uses a temporary browser context and does not save Poshmark cookies or passwords. It stops after 200 unique listings, 12 scrolls, ten minutes, repeated empty scrolls, or an access response requiring attention.
+The local collector uses a temporary browser context and does not save Poshmark cookies or passwords. It stops after 200 unique listings, 12 scrolls, ten minutes, repeated empty scrolls, or an access response requiring attention. The hosted collector reuses a Browserbase Context and has shorter limits to fit the Vercel Function budget.
 
 ## Supabase configuration
 
@@ -52,7 +52,7 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_example
 ```
 
-Keep `.env.local` on the collector computer. It is ignored by Git. The secret key must never appear in browser code. The Vite variables contain the project URL and browser-safe publishable key.
+Keep `.env.local` on the collector computer. It is ignored by Git. The secret key must never appear in browser code. The Vite variables contain the project URL and browser-safe publishable key. The hosted collector uses server-only production environment variables on Vercel; see [Cloud refresh](docs/cloud-refresh.md) for setup and recovery.
 
 Database migrations live in `supabase/migrations`. They create owner-scoped tables for collection batches, listings, listing state, and filter rules, plus a private `listing-images` bucket.
 
@@ -60,9 +60,9 @@ Database migrations live in `supabase/migrations`. They create owner-scoped tabl
 
 The browser signs in with the single Supabase Auth account. It loads up to 1,000 cached listings, applies the current cloud filter rules, and creates one-hour signed URLs for private cover images. The All picks and Saved views work from the cached dataset. Save, hide, viewport view, and outbound open actions write to `user_listing_state`.
 
-Hide offers a persistent Undo action for consecutive hides in the current session. Reloading the page ends that Undo history. Refresh reloads the existing cloud cache; run the collector to gather new Poshmark listings. The interface review and verification record is in [Design review](docs/interface-review.md).
+Hide offers a persistent Undo action for consecutive hides in the current session. Reloading the page ends that Undo history. Get new picks starts an owner-protected Browserbase collection through Vercel and reloads the feed on completion. Refresh reloads the existing cloud cache. The interface review and verification record is in [Design review](docs/interface-review.md).
 
-For a production deployment, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel. The collector-only secret variables stay on the collector computer.
+For a production deployment, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel. The hosted collector also needs `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_USER_ID`, `BROWSERBASE_API_KEY`, and `BROWSERBASE_CONTEXT_ID` as server-only production variables.
 
 ## Deployment
 
@@ -70,9 +70,7 @@ Production runs at [poshmark-wrapper.vercel.app](https://poshmark-wrapper.vercel
 
 The October 9 interface improvements are deployed from commit `3091e33`. Current verification and remaining phone checks are recorded in [Project status](docs/project-status.md). New listing batches reach the app through `npm run collect:cloud` and Refresh, without a frontend deployment. Browsing the hosted cache requires internet access to Supabase; the collector computer can be offline.
 
-The [cloud-browser probe](docs/cloud-browser-probe.md) verified Poshmark sign-in persistence across two Browserbase sessions. It is a separate feasibility check; the hosted collection job and on-demand app action are still to be built.
-
-Cloud collection work is paused until the next usage window. Resume from the [project handoff](docs/project-status.md#next-milestone): build and verify a bounded hosted collection and Supabase sync, then connect an owner-protected app trigger. The current Refresh button reloads cached picks and does not request new listings.
+The [cloud-browser probe](docs/cloud-browser-probe.md) verified Poshmark sign-in persistence across two Browserbase sessions. [Cloud refresh](docs/cloud-refresh.md) documents the implemented hosted collector and Get new picks action. An app-triggered run collected 200 listings in 41 seconds. The remaining field check is using the installed iPhone PWA with the PC powered off.
 
 ## Filtering
 

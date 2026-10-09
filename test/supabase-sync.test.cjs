@@ -39,3 +39,19 @@ test('sync maps the cached listing and rules without exposing the secret', async
   assert.equal(JSON.stringify(requests).includes(env.SUPABASE_SECRET_KEY), true);
   assert.equal(JSON.stringify(listingBody).includes(env.SUPABASE_SECRET_KEY), false);
 });
+
+test('hosted sync preserves first sighting and cached image without resetting owner rules', async () => {
+  const requests = [];
+  const id = 'b'.repeat(24);
+  const fetchImpl = async (url, options) => {
+    requests.push({ url, options });
+    if (url.includes('&select=poshmark_id')) return Response.json([{ poshmark_id: id, first_seen_at: '2026-10-01T12:00:00Z', cover_image_path: ownerId + '/existing.jpg' }]);
+    return new Response('', { status: 201 });
+  };
+  await syncToSupabase({ records: [{ id, title: 'Vintage wool sweater', asking_price: 50, source_position: 0, first_seen_at: '2026-10-09T12:00:00Z', last_seen_at: '2026-10-09T12:00:00Z' }], directory: '.', env, fetchImpl, batchId: 8, preserveExisting: true, syncRules: false });
+  assert.equal(requests.length, 2);
+  const row = JSON.parse(requests[1].options.body)[0];
+  assert.equal(row.first_seen_at, '2026-10-01T12:00:00Z');
+  assert.equal(row.cover_image_path, ownerId + '/existing.jpg');
+  assert.equal(row.last_batch_id, 8);
+});

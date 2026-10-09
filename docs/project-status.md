@@ -15,6 +15,7 @@ Build a private feed that periodically caches a large batch of Poshmark Suggeste
 - Listing IDs are deduplicated. Source order and observation timestamps are retained.
 - The collector saves one cover image per listing and closes its temporary browser context.
 - Poshmark credentials and cookies are not persisted by the collector.
+- The hosted collector connects to Browserbase using the saved Context and writes a bounded batch to Supabase. Its temporary SQLite cache and photos are removed after the run. The local Chrome collector remains available.
 
 ### Filtering
 
@@ -39,6 +40,7 @@ Build a private feed that periodically caches a large batch of Poshmark Suggeste
 - Private cover images use one-hour signed Storage URLs.
 - The app applies the $150 limit, 53-brand blocklist, missing-brand title fallback, and source order.
 - Cards provide Save and Hide actions and open the original Poshmark listing.
+- Get new picks starts an owner-protected hosted collection. The app polls batch status, prevents repeated taps during a run, and reloads picks after completion. Refresh reloads the existing Supabase cache.
 - Viewport exposure and outbound opens are recorded in `user_listing_state`.
 - A web manifest and same-origin shell service worker support installation as a PWA.
 
@@ -50,7 +52,8 @@ Build a private feed that periodically caches a large batch of Poshmark Suggeste
 - Storage bucket: private `listing-images`, with a 5 MB object limit
 - Every public-schema table has RLS enabled and owner-scoped authenticated policies.
 - Anonymous users have no listing-table grant.
-- The collector secret and owner UUID live only in ignored `.env.local`.
+- Collector credentials live in ignored `.env.local` and production-only Vercel server environment variables. The Browserbase key and saved Context ID are server-only values.
+- A partial unique index permits one active collection per owner. Jobs left running after seven minutes are marked as needing attention when the next collection is requested.
 - `sync.cjs` uploads the existing local cache. `collect.cjs --sync` uploads after a new collection.
 
 ## Verified state
@@ -68,7 +71,9 @@ The first cloud sync completed on October 9, 2026:
 | Title fallback | Enabled |
 | Anonymous listing access | Disabled |
 
-Seven automated tests pass. They cover the price boundary, factory and mainline brand distinctions, title fallback, local deduplication and API filtering, the browser filter, cloud configuration validation, and Supabase record mapping.
+Ten automated tests pass. They cover the price boundary, factory and mainline brand distinctions, title fallback, local deduplication and API filtering, the browser filter, cloud configuration validation, Supabase record mapping, validated owner authorization, duplicate collection handling, and preservation of existing images and first-seen timestamps. Fixture browser checks cover the collection button, repeated taps, completion, failure recovery, mobile widths, and existing interface flows, with zero axe violations and no unhandled browser errors.
+
+The hosted collection was verified October 9: the deployed app started batch 3, Vercel ran the controller, and Browserbase opened Poshmark using the saved login. The job completed in 41 seconds with 200 listings and 193 cached cover images. The app reloaded and displayed 427 eligible cached picks. A competing batch claim was rejected by the database lock. The endpoint returned HTTP 401 without an owner token. No production browser warnings or errors and no Vercel error logs were found for the tested deployment. See [Cloud refresh](cloud-refresh.md).
 
 The authenticated production build was verified at a 390 by 844 viewport. It rendered 187 eligible cards from the 200-listing cache, loaded private cover images, produced no browser console errors, and retained the source order. A save action wrote through RLS and was reverted. Viewport tracking created eight viewed-state rows. The signed-out browser smoke test confirms the sign-in form, mobile width, and console state.
 
@@ -88,14 +93,25 @@ Local Playwright collector
                                                     |
                                                     v
                                           Poshmark listing link
+
+Phone: Get new picks --> owner-protected Vercel Function
+                                 |
+                                 v
+                      Browserbase saved Poshmark Context
+                                 |
+                                 v
+                      Supabase Postgres and Storage
+                                 |
+                                 v
+                      PWA status and refreshed picks
 ```
 
-The Poshmark session remains on the collector computer. Supabase stores listing metadata, interaction state, filter rules, and cached cover images. The browser frontend uses a publishable key and authenticated RLS access. The Supabase secret key remains limited to the collector.
+The local collector uses a temporary Poshmark session. The hosted collector reuses a Poshmark login in a Browserbase Context. Supabase stores listing metadata, interaction state, filter rules, and cached cover images. The browser frontend uses a publishable key and authenticated RLS access. Secret keys remain on the local collector and hosted server.
 
 ## Known constraints
 
 - The personalized feed endpoint and rendered selectors are undocumented and can change.
-- Sustained unattended collection and account-blocking behavior remain untested.
+- Sustained unattended collection and account-blocking behavior remain untested. Browserbase quota and Poshmark session expiry can interrupt collection.
 - Poshmark's terms prohibit scraping and automated collection. Personal use does not remove account or access risk.
 - Five listings in the first cache lacked a successfully cached cover image.
 - The production shell is public by design. Supabase Auth and owner-scoped RLS protect listings, state, rules, and private images.
@@ -106,7 +122,7 @@ The Poshmark session remains on the collector computer. Supabase stores listing 
 - Project: `cburns33s-projects/poshmark-wrapper`
 - Production: `https://poshmark-wrapper.vercel.app`
 - Framework preset: Vite
-- Production and Preview contain only the browser-safe Vite Supabase variables.
+- Production contains browser-safe Vite Supabase variables and server-only collection credentials. Preview retains the browser-safe variables and cannot start cloud collection without server configuration.
 - Vercel Authentication protects Preview deployments. Production relies on the app's Supabase sign-in and owner-scoped RLS.
 - The first production build returned HTTP 200 for the app shell, manifest, and service worker. It contained the same hashed JavaScript and CSS assets as the verified local production build.
 - Production sign-in loaded 187 cards and private images with no console warnings or errors. A Save action wrote through RLS, was confirmed in Postgres, and was restored to its original unsaved state.
@@ -115,22 +131,20 @@ The Poshmark session remains on the collector computer. Supabase stores listing 
 
 The October 9 interface review used Jakub Krehel's better-interface and its six domain skills. Implemented changes include contrast, 44px controls, visible mobile Poshmark-link cues, focus preservation, persistent session Undo Hide, card-local errors, recovery copy, loading states, and an empty-Saved exit. See [Interface review](interface-review.md) for the ranked findings, coverage, verification, and limitations. Seven core tests, the production build, and the fixture-based interface checks pass, with zero axe violations in the checked states.
 
-Implementation commit `3091e33` is deployed on production. Documentation commit `c30ebe7` recorded the deployment verification and was pushed to GitHub. The authenticated production check loaded 187 picks and private images, confirmed live Hide and Undo through a reload, and captured no browser warnings or errors. Source and deployment are current; documentation updates do not require an app redeployment.
+The interface milestone was first deployed from commit `3091e33`. Documentation commit `c30ebe7` recorded that deployment verification. The authenticated interface check loaded 187 picks and private images, confirmed live Hide and Undo through a reload, and captured no browser warnings or errors. The production app now also includes the cloud collection controls described above.
 
 ## Next milestone
 
 An October 9 cloud-browser probe confirmed that two Browserbase sessions can use a saved Poshmark login. The first reached 36 feed cards, and the second reached 48 cards without another sign-in. See [Cloud-browser probe](cloud-browser-probe.md). Full PC-off refresh still requires hosted collection and sync; the probe did not import listings.
 
-Work is paused for the next usage window. The next task is a bounded end-to-end cloud collection: connect the existing collector to Browserbase, write one batch and its cover images to Supabase, and verify that the hosted PWA shows new picks after Refresh. Then add an owner-protected app trigger and visible job status so the phone can start that collection while the PC is off. Keep the existing Refresh behavior distinct from starting collection until that trigger works. Do not spend another session repeating the login-persistence probe unless the saved Context fails. The Browserbase key and Context ID are already stored in ignored local files; never commit them. See [Cloud-browser probe](cloud-browser-probe.md) for commands and evidence.
-
-Success for the cloud milestone: a signed-in owner starts a bounded collection from the deployed app with the PC off, the job completes or reports a clear failure, Supabase receives a new batch, and Refresh displays its eligible listings. Test the collection and sync before wiring the app button. This has not been implemented or verified yet.
+The hosted collector and owner-protected app trigger are implemented and verified. The remaining field check is to start Get new picks from the installed iPhone PWA with the PC powered off. No local collection process participated in the hosted verification. A physical PC-off phone test has not been performed. Do not repeat the login-persistence probe unless the saved Context fails.
 
 Complete the phone field test:
 
 1. Install the PWA from Safari and repeat the browsing check.
 2. Test Hide and an outbound Poshmark link from the phone.
-3. Run `npm run collect:cloud` for a fresh batch and confirm the hosted feed updates without redeployment.
+3. With the PC off, select Get new picks and confirm completion and new cached listings without redeployment.
 
-Success means the installed phone app can browse the hosted cache while the collector computer and Poshmark session are offline, then receive a later collector sync. The phone still needs internet access to Supabase. The service worker caches the app shell; full offline listing and image support has not been implemented.
+Success means the installed phone app can browse and replenish the hosted cache with the PC off. Browserbase must retain a valid Poshmark session and have quota remaining. The phone needs internet access. The service worker caches the app shell; full offline listing and image support has not been implemented.
 
 Physical iPhone safe-area behavior and screen-reader speech remain unchecked. Card-density variants are an optional later design task. The next functional priority is the phone and replenishment check.

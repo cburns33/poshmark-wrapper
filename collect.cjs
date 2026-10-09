@@ -40,8 +40,10 @@ async function cacheImage(record, store) {
   } catch { return false; }
 }
 
-async function main() {
-  const store = openStore();
+async function main(options = {}) {
+  const remote = Boolean(options.connectUrl);
+  const deadline = remote ? Date.now() + 240_000 : Infinity;
+  const store = openStore(options.directory);
   const runId = new Date().toISOString();
   const filter = createFilter(JSON.parse(fs.readFileSync(path.join(__dirname, 'preferences.json'), 'utf8')));
   const collected = new Map();
@@ -54,9 +56,9 @@ async function main() {
   store.begin(runId);
   fs.mkdirSync(path.join(store.directory, 'images'), { recursive: true });
   try {
-    browser = await chromium.launch({ channel: 'chrome', headless: false });
-    const context = await browser.newContext();
-    const page = await context.newPage();
+    browser = remote ? await chromium.connectOverCDP(options.connectUrl, { timeout: 30000 }) : await chromium.launch({ channel: 'chrome', headless: false });
+    const context = remote ? browser.contexts()[0] : await browser.newContext();
+    const page = remote ? context.pages()[0] || await context.newPage() : await context.newPage();
     page.on('response', response => {
       const url = new URL(response.url());
       if (url.hostname !== 'poshmark.com' || !ENDPOINT.test(url.pathname)) return;
@@ -72,9 +74,9 @@ async function main() {
         console.log(JSON.stringify({ event: 'batch', batches, postsInResponse: feedPosts(data).length }));
       }).catch(() => { stopReason = 'The feed response could not be read. The saved cache is intact.'; });
     });
-    await page.goto('https://poshmark.com/feed', { waitUntil: 'domcontentloaded' });
-    console.log('SIGN IN in this Chrome window. Collection starts when the feed appears, stops at 200 unique cards or 12 scrolls, then closes this temporary browser.');
-    await page.locator('.tile-grid-redesign').first().waitFor({ state: 'attached', timeout: 15 * 60 * 1000 });
+    await page.goto('https://poshmark.com/feed', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    if (!remote) console.log('SIGN IN in this Chrome window. Collection starts when the feed appears, stops at 200 unique cards or 12 scrolls, then closes this temporary browser.');
+    await page.locator('.tile-grid-redesign').first().waitFor({ state: 'attached', timeout: remote ? 30000 : 15 * 60 * 1000 });
     active = true;
     store.status(runId, 'collecting', 'Collecting a bounded batch from your feed.', 0);
     const started = Date.now();
@@ -111,7 +113,7 @@ async function main() {
       store.status(runId, 'collecting', 'Collected ' + collected.size + ' unique listings.', collected.size);
       console.log(JSON.stringify({ event: 'progress', collected: collected.size, scroll }));
       idle = collected.size === before ? idle + 1 : 0;
-      if (collected.size >= TARGET || stopReason || idle >= 3 || scroll === MAX_SCROLLS || Date.now() - started > 10 * 60 * 1000) break;
+      if (collected.size >= TARGET || stopReason || idle >= 3 || scroll === MAX_SCROLLS || Date.now() - started > (remote ? 90000 : 10 * 60 * 1000)) break;
       const priorBatches = batches;
       await page.keyboard.press('Control+End');
       for (let attempt = 0; attempt < 30 && batches === priorBatches && !stopReason; attempt++) await delay(300);
@@ -122,8 +124,9 @@ async function main() {
     const rows = [...collected.values()];
     store.status(runId, 'caching_images', 'Saving cover photos for local browsing.', rows.length);
     let imageCount = 0;
-    for (let index = 0; index < rows.length; index += 3) {
-      const results = await Promise.all(rows.slice(index, index + 3).map(record => cacheImage(record, store)));
+    const imageConcurrency = remote ? 6 : 3;
+    for (let index = 0; index < rows.length && Date.now() < deadline - 60000; index += imageConcurrency) {
+      const results = await Promise.all(rows.slice(index, index + imageConcurrency).map(record => cacheImage(record, store)));
       imageCount += results.filter(Boolean).length;
     }
     const reasons = {};
@@ -136,16 +139,21 @@ async function main() {
     const detail = stopReason || (status === 'complete' ? 'Collection complete.' : 'Stopped at the collection limit or after the feed stopped yielding new items.');
     store.status(runId, status, detail, rows.length, true);
     let cloud = null;
-    if (process.argv.includes('--sync')) {
+    if (options.sync || process.argv.includes('--sync')) {
       try {
-        cloud = await syncToSupabase({ records: store.list(), run: store.latestRun(), preferences: JSON.parse(fs.readFileSync(path.join(__dirname, 'preferences.json'), 'utf8')), directory: store.directory });
+        cloud = await syncToSupabase({ records: store.list().map(record => remote ? { ...record, last_seen_at: runId } : record), run: store.latestRun(), preferences: JSON.parse(fs.readFileSync(path.join(__dirname, 'preferences.json'), 'utf8')), directory: store.directory, batchId: options.batchId, preserveExisting: remote, syncRules: !remote,
+          fetchImpl: remote ? (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(Math.max(1, Math.min(15000, deadline - Date.now()))) }) : fetch });
       } catch (error) {
+        if (remote) throw error;
         cloud = { status: 'failed', detail: error.message };
         process.exitCode = 1;
       }
     }
-    console.log(JSON.stringify({ event: 'finished', status, collected: rows.length, batches, cachedImages: imageCount, reasons, detail, cloud }));
+    const result = { event: 'finished', status, collected: rows.length, batches, cachedImages: imageCount, reasons, detail, cloud };
+    console.log(JSON.stringify(result));
+    return result;
   } catch (error) {
+    if (remote) throw new Error(collected.size ? 'Cloud collection or sync failed. Try again; the previous feed is available.' : 'Poshmark feed could not be opened. Reconnect the saved login in Browserbase Live View, then try again.');
     store.status(runId, 'needs_attention', 'Collection stopped: ' + error.message.split('\n')[0], collected.size, true);
     console.error('Collection stopped. Saved listings are intact. ' + error.message.split('\n')[0]);
     process.exitCode = 1;
@@ -155,4 +163,4 @@ async function main() {
   }
 }
 if (require.main === module) main();
-module.exports = { feedPosts };
+module.exports = { feedPosts, collect: main };

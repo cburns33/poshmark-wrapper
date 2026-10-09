@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { createFilter } from './filters.mjs';
+import { collectionControls } from './collection.mjs';
 import './style.css';
 
 const config = {
@@ -22,6 +23,12 @@ let viewedTimer;
 const pendingViewed = new Set();
 const hiddenHistory = [];
 let collectionSummary = '';
+const collection = collectionControls({
+  button: document.getElementById('collect'),
+  status: document.getElementById('collection-status'),
+  client: () => supabase,
+  onComplete: loadFeed,
+});
 
 function setPending(button, pending) {
   button.setAttribute('aria-disabled', String(pending));
@@ -218,7 +225,7 @@ function renderListings() {
     elements.empty.querySelector('p').textContent = 'Tap Save on any listing to keep it here.';
   } else {
     elements.empty.querySelector('h2').textContent = 'Your next finds will appear here.';
-    elements.empty.querySelector('p').textContent = 'Run the collector on your computer to replenish this feed.';
+    elements.empty.querySelector('p').textContent = 'Select Get new picks to replenish this feed.';
   }
   elements['empty-action'].hidden = currentView !== 'saved';
   updateCounts();
@@ -248,7 +255,7 @@ async function loadFeed() {
       supabase.from('listings').select('poshmark_id,title,brand,asking_price_cents,currency,listing_url,cover_image_path,availability,source_position,last_seen_at').order('last_seen_at', { ascending: false }).order('source_position', { ascending: true }).limit(1000),
       supabase.from('filter_rules').select('max_price_cents,blocked_brands,title_fallback').single(),
       supabase.from('user_listing_state').select('*').limit(1000),
-      supabase.from('collection_batches').select('listing_count,completed_at').order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('collection_batches').select('listing_count,completed_at').in('status', ['complete', 'partial']).order('started_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     for (const result of [listingResult, rulesResult, stateResult, batchResult]) if (result.error) throw result.error;
     listingState = new Map(stateResult.data.map(item => [item.poshmark_id, item]));
@@ -270,6 +277,7 @@ async function loadFeed() {
     setPending(elements.reload, false);
     setPending(elements['retry-feed'], false);
     if (retryHadFocus && elements['feed-error'].hidden) elements.reload.focus();
+    if (session) await collection.refresh();
   }
 }
 
@@ -284,6 +292,7 @@ async function showSession(nextSession) {
     await loadFeed();
   }
   else {
+    collection.stop();
     elements.grid.replaceChildren();
     listings = [];
     listingState.clear();

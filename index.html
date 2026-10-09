@@ -35,6 +35,7 @@
           <p id="rules">Loading your preferences…</p>
         </div>
         <div class="header-actions">
+          <button id="collect" type="button">Get new picks</button>
           <button id="reload" type="button">Refresh <span aria-hidden="true">↻</span></button>
           <button id="sign-out" type="button">Sign out</button>
         </div>
@@ -48,6 +49,7 @@
         <button class="view-button" data-view="saved" type="button" aria-pressed="false">Saved</button>
       </nav>
       <p id="loading" class="loading" hidden>Loading your collected listings…</p>
+      <p id="collection-status" role="status"></p>
       <div id="feed-error" class="error" hidden>
         <p id="feed-error-message" role="alert"></p>
         <button id="retry-feed" type="button">Try again</button>
@@ -56,7 +58,7 @@
       <section id="grid" class="grid" aria-label="Filtered Poshmark listings" tabindex="-1" aria-busy="false"></section>
       <div id="empty" class="empty" hidden>
         <h2>Your next finds will appear here.</h2>
-        <p>Run the collector on your computer to replenish this feed.</p>
+        <p>Select Get new picks to replenish this feed.</p>
         <button id="empty-action" type="button">Browse all picks</button>
       </div>
       <p id="action-status" class="sr-only" role="status"></p>

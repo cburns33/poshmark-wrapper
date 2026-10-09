@@ -1,0 +1,10 @@
+.env*
+AGENTS.md
+data/
+probe-output/
+output/
+test-output/
+.playwright-cli/
+supabase/.temp/
+node_modules/
+test/

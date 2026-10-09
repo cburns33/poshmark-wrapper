@@ -32,6 +32,14 @@ async function audit(page, name) {
     let mode = 'normal';
     let failWrite = false;
     let releaseLoad;
+    let batch = { id: 1, status: 'complete', listing_count: 5, completed_at: '2026-10-09T12:00:00Z' };
+    let collectionRequests = 0;
+    await context.route('**/api/collect', route => {
+      collectionRequests++;
+      assert.equal(route.request().headers().authorization, 'Bearer fixture-access-token');
+      batch = { id: 2, status: 'collecting', started_at: new Date().toISOString(), listing_count: 0 };
+      return route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ batchId: 2 }) });
+    });
     const state = new Map();
     const publicUrl = new URL(process.env.VITE_SUPABASE_URL);
     await context.route(`${publicUrl.origin}/**`, async route => {
@@ -63,7 +71,7 @@ async function audit(page, name) {
       }
       if (table === 'filter_rules') return reply({ max_price_cents: 15000, blocked_brands: ['SHEIN'], title_fallback: true });
       if (table === 'user_listing_state') return reply([...state.values()]);
-      if (table === 'collection_batches') return reply({ listing_count: 5, completed_at: '2026-10-09T12:00:00Z' });
+      if (table === 'collection_batches') return reply(batch);
       throw new Error(`Unexpected fixture request: ${table}`);
     });
     await page.addInitScript(({ origin, ownerId }) => {
@@ -76,6 +84,20 @@ async function audit(page, name) {
     await page.locator('.card').nth(2).waitFor();
     await page.locator('#reload[aria-disabled="false"]').waitFor();
     const audits = [await audit(page, 'feed')];
+    await page.locator('#collect').click();
+    await page.waitForFunction(() => document.querySelector('#collection-status').textContent.includes('keep browsing'));
+    assert.equal(await page.locator('#collect').getAttribute('aria-disabled'), 'true');
+    await page.locator('#collect').click({ force: true });
+    assert.equal(collectionRequests, 1, 'A second tap does not launch another collection');
+    batch = { id: 2, status: 'complete', listing_count: 5, completed_at: new Date().toISOString() };
+    await page.locator('#reload').click();
+    await page.locator('#collect[aria-disabled="false"]').waitFor();
+    assert.equal(await page.locator('.card').count(), 3, 'Completed collection reloads the filtered feed');
+    batch = { ...batch, id: 3, status: 'needs_attention', detail: 'Reconnect Poshmark, then try again.' };
+    await page.locator('#reload').click();
+    await page.waitForFunction(() => document.querySelector('#collection-status').textContent.includes('Reconnect Poshmark'));
+    assert.equal(await page.locator('#collect').getAttribute('aria-disabled'), 'false', 'Failed collection remains retryable');
+    batch = { id: 1, status: 'complete', listing_count: 5, completed_at: '2026-10-09T12:00:00Z' };
     await page.screenshot({ path: path.join(output, 'interface-mobile.png') });
     if (process.argv.includes('--baseline')) {
       console.log(JSON.stringify({ audits, controls: await page.locator('.card-action').first().evaluate(e => ({ height: e.getBoundingClientRect().height })), pageErrors }));
@@ -144,7 +166,7 @@ async function audit(page, name) {
     mode = 'empty';
     await page.locator('#reload').click();
     await page.locator('#empty').waitFor();
-    assert.match(await page.locator('#empty').innerText(), /collector/);
+    assert.match(await page.locator('#empty').innerText(), /Get new picks/);
     audits.push(await audit(page, 'empty'));
     mode = 'normal';
     await page.locator('#reload').click();

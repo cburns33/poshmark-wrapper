@@ -6,16 +6,16 @@ The repeatable probe is `cloud-probe.cjs`. Set `BROWSERBASE_API_KEY` in ignored 
 
 The initial live probe succeeded on Browserbase's free tier. Its published limit is one browser hour per month with a 15-minute limit per session. The free tier has no CAPTCHA solving. The two-session result establishes access and login persistence for this date, not sustained reliability or permission from Poshmark. A later Poshmark challenge or expired login may require manual sign-in. See [Browserbase pricing](https://www.browserbase.com/pricing) and [Contexts documentation](https://docs.browserbase.com/platform/browser/core-features/contexts).
 
-Next implementation milestone: adapt the collector to connect to Browserbase, collect a bounded feed batch, and sync it to Supabase from a hosted job. Then connect a protected app action to trigger the job and show collection status. Confirm collection works with the PC off before scheduling it.
+The hosted collector and protected app trigger were implemented and verified later on October 9. See [Cloud refresh](cloud-refresh.md) for the flow, server setup, live results, and remaining iPhone field check.
 
-## Handoff for the next usage window
+## Completed implementation handoff
 
-Start from commit `ba5c9f2` or later on `main`. The probe has already established cloud feed access and saved-login reuse, so begin with the collection path. Reuse the existing listing mapping, filter rules, and Supabase schema. Keep Browserbase and Supabase secret keys in server-side environment variables. A client request must be authenticated and restricted to the owner before it can start collection. Browserbase's 15-minute free-tier session limit bounds the first run.
+The collection path reuses the existing collector, listing mapping, filter rules, and Supabase schema. Browserbase and Supabase secret keys are server-side production variables. The client request is authenticated and restricted to the owner. A Vercel Function controls the cloud browser with a five-minute function limit.
 
-Implement and verify in this order:
+Verification completed:
 
-1. Run a bounded Browserbase collection and sync from a hosted worker. Confirm a new `collection_batches` row, listing rows, and cover images in Supabase.
-2. Add an owner-protected app action that starts the worker and displays running, completed, or failed status. A second tap should not launch a duplicate run.
-3. With the PC off, start a run from the deployed phone app. Confirm Refresh shows eligible listings from the new batch. Record elapsed time and Browserbase minutes consumed.
+1. Browserbase collection and Supabase sync succeeded with 200 listings.
+2. The owner-protected app action started the hosted worker; batch 3 completed in 41 seconds with 193 cover images, and the app reloaded to 427 eligible cached picks. The database rejected a duplicate active-batch claim.
+3. Remaining field check: start Get new picks from the installed iPhone PWA with the PC off. Browserbase quota and expired-login recovery need monitoring during normal use.
 
-Current `Refresh` only rereads the Supabase cache. No hosted worker, trigger, or PC-off collection is present yet. If the saved Poshmark session expires or a challenge appears, the owner may need to reopen Browserbase Live View and sign in. Stop the run on that state and report it in the app.
+Refresh rereads the Supabase cache. Get new picks starts hosted collection. If the saved Poshmark session expires or a challenge appears, the owner may need to reopen Browserbase Live View and sign in. Collection reports a failure for that state. No schedule has been configured.
