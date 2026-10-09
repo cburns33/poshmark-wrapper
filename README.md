@@ -61,6 +61,10 @@ The browser signs in with the single Supabase Auth account. It loads up to 1,000
 
 For a production deployment, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel. The collector-only secret variables stay on the collector computer.
 
+## Deployment
+
+Production runs at [poshmark-wrapper-cburns33s-projects.vercel.app](https://poshmark-wrapper-cburns33s-projects.vercel.app). Vercel Authentication protects Preview deployments. Production exposes the static sign-in shell, while Supabase Auth, RLS, and private Storage policies protect listing data and images.
+
 ## Filtering
 
 `preferences.json` is the current rule source. Listings above $150 are excluded. The configured 53-brand blocklist uses structured brand data when available and title matching as a fallback when brand data is missing. Unknown and vintage labels remain visible. Source order is preserved.

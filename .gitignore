@@ -9,3 +9,5 @@ AGENTS.md
 .env
 .env.local
 .env.*.local
+
+.vercel/

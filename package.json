@@ -16,7 +16,7 @@
     "test:browser": "node test/browser-smoke.cjs"
   },
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",

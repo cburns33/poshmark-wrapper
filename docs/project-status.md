@@ -98,17 +98,25 @@ The Poshmark session remains on the collector computer. Supabase stores listing 
 - Sustained unattended collection and account-blocking behavior remain untested.
 - Poshmark's terms prohibit scraping and automated collection. Personal use does not remove account or access risk.
 - Five listings in the first cache lacked a successfully cached cover image.
-- The PWA has not been deployed to Vercel.
+- The production shell is public by design. Supabase Auth and owner-scoped RLS protect listings, state, rules, and private images.
 - Companion interactions do not update Poshmark's recommendation system.
+
+## Vercel deployment
+
+- Project: `cburns33s-projects/poshmark-wrapper`
+- Production: `https://poshmark-wrapper-cburns33s-projects.vercel.app`
+- Framework preset: Vite
+- Production and Preview contain only the browser-safe Vite Supabase variables.
+- Vercel Authentication protects Preview deployments. Production relies on the app's Supabase sign-in and owner-scoped RLS.
+- The first production build returned HTTP 200 for the app shell, manifest, and service worker. It contained the same hashed JavaScript and CSS assets as the verified local production build.
 
 ## Next milestone
 
-Deploy the verified PWA to Vercel:
+Complete the phone field test:
 
-1. Connect the GitHub repository to a Vercel project using the Vite preset.
-2. Set the two browser-safe Vite Supabase variables for Preview and Production.
-3. Verify sign-in, 187-card loading, private images, Save, Hide, and Poshmark links on the deployed URL.
-4. Add the deployed site URL to Supabase Auth URL configuration.
-5. Install the PWA from Safari on the iPhone and repeat the browsing check.
+1. Sign in on the production URL and confirm the 187-card feed and private images.
+2. Test Save, Hide, and outbound Poshmark links from the deployed app.
+3. Install the PWA from Safari and repeat the browsing check.
+4. Run `npm run collect:cloud` for a fresh batch and confirm the hosted feed updates without redeployment.
 
-Success means the phone can browse the cached feed while the collector computer and Poshmark session are offline.
+Success means the installed phone app can browse the cached feed while the collector computer and Poshmark session are offline, then receive a later collector sync.
