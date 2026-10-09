@@ -3,3 +3,6 @@ node_modules/
 data/
 test-output/
 AGENTS.md
+.env
+.env.local
+.env.*.local

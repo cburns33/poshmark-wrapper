@@ -43,3 +43,7 @@ The tests cover the inclusive $150 limit, factory/mainline brand distinctions, t
 The SQLite database, cached images, probe output, screenshots, and local project state are ignored by Git. The app binds to `127.0.0.1`, so it is available only on the computer running it.
 
 The current collector and cache are designed for a local computer. A hosted deployment needs a separate authenticated collector and durable hosted storage.
+
+## Supabase
+
+The initial cloud schema is in `supabase/migrations/20261009_initial_schema.sql`. It creates private, owner-scoped tables for collection batches, listings, listing state, and filter rules, plus a private `listing-images` bucket. Copy `.env.example` to `.env.local` when cloud sync is enabled. Keep `SUPABASE_SECRET_KEY` on the collector computer and never place it in browser code.
