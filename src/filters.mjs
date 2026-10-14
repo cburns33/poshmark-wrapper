@@ -21,6 +21,7 @@ export function createFilter(rules) {
     if (listing.currency !== 'USD' || !Number.isFinite(listing.asking_price_cents)) return false;
     if (listing.asking_price_cents > rules.max_price_cents) return false;
     if (listing.availability && listing.availability !== 'available') return false;
+    if (/(?:^| )slim(?: |$)/.test(words(listing.title))) return false;
     const brandKey = compact(listing.brand);
     if (blocked.some(item => item.key === brandKey)) return false;
     if (!brandKey && rules.title_fallback) {

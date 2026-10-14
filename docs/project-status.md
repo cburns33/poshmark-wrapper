@@ -148,3 +148,7 @@ Complete the phone field test:
 Success means the installed phone app can browse and replenish the hosted cache with the PC off. Browserbase must retain a valid Poshmark session and have quota remaining. The phone needs internet access. The service worker caches the app shell; full offline listing and image support has not been implemented.
 
 Physical iPhone safe-area behavior and screen-reader speech remain unchecked. Card-density variants are an optional later design task. The next functional priority is the phone and replenishment check.
+
+## October 14, 2026 title filter
+
+The browser and local feed filters exclude the case-insensitive whole word `slim` in listing titles, including punctuation-separated `slim-fit`. This applies regardless of structured brand or the brand-title fallback setting and filters already cached listings. Substrings such as `Slimane` remain visible. Descriptions are not inspected. Eleven unit tests and the production build pass.
