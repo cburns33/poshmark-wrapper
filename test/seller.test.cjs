@@ -17,4 +17,7 @@ test('seller inventory excludes other departments and unwanted categories and re
   assert.equal(sellerRecord({ ...post, creator_username: 'other' }, 'seller'), null);
   assert.equal(sellerRecord({ ...post, department: { display: 'Women' } }, 'seller'), null);
   for (const category of ['Shoes', 'Accessories', 'Suits & Blazers']) assert.equal(sellerRecord({ ...post, category }, 'seller'), null);
+  assert.equal(sellerRecord({ ...post, category: 'Other', category_v2: { display: 'Shoes' } }, 'seller'), null);
+  assert.equal(sellerRecord({ ...post, category: 'Other', category_v2: { display: 'Other' } }, 'seller'), null);
+  assert.ok(sellerRecord({ ...post, category: 'Other', category_v2: { display: 'Sweaters' } }, 'seller'));
 });

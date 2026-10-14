@@ -152,3 +152,9 @@ Physical iPhone safe-area behavior and screen-reader speech remain unchecked. Ca
 ## October 14, 2026 title filter
 
 The browser and local feed filters exclude the case-insensitive whole word `slim` in listing titles, including punctuation-separated `slim-fit`. This applies regardless of structured brand or the brand-title fallback setting and filters already cached listings. Substrings such as `Slimane` remain visible. Descriptions are not inspected. Eleven unit tests and the production build pass.
+
+## October 14, 2026 seller browsing implementation
+
+Browse seller is implemented with Poshmark Men + My Sizes filtering, 24-hour cached seller snapshots, Update seller, explicit sizes, and shared Save/Hide/Undo. Seller imports preserve Suggested ordering. Fifteen unit tests and interface fixtures pass, with zero axe violations. Migration 20261014165034_seller_inventory.sql is applied; no new security warning. Commit 3abdb21 is pushed. Staged Vercel deployment dpl_CwLTkWaZ72TTmF7iXJnfFgkeEYcy is READY, with tested assets and owner authentication verified. Canonical production has not been promoted; a real bounded inventory test is pending the user's large-data permission. Details: docs/seller-browsing.md.
+
+Seller live test approved and completed: batch 7, 23 clothing listings and 23 photos. Structured category_v2.display fixes legacy Other labels that allowed shoes and introduction cards in the first test. All 647 Suggested rows retain the exact source-order/last-seen/batch hash. Fifteen unit tests pass. Release follow-up supersedes the pending-test note above.

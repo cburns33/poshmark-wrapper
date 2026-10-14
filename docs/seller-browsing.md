@@ -1,6 +1,6 @@
 # Filtered seller browsing
 
-Implemented October 14, 2026. Release verification is pending the approved live inventory test.
+Implemented and live inventory verified October 14, 2026.
 
 ## Use
 
@@ -24,4 +24,6 @@ Collection batches store seller identity and the seed listing ID. seller_invento
 - Browser fixtures pass for seller filtering, explicit sizes, Save/Hide/Undo, returning to All picks, existing app interactions, mobile layouts, and accessibility. Zero axe violations or unhandled browser errors.
 - Database migration applied and seller-inventory read policy verified. Security advisors show only the previously accepted leaked-password-protection warning.
 
-Still required before release: a real bounded seller import and matching cached-record verification. The user's large-data permission question is pending. Browserbase quota and saved-login expiry remain operational limits. An incomplete bounded batch is labeled partial; the app does not promise an entire large closet.
+The approved live test used the saved Browserbase login and the production Supabase database. Batch 7 completed with 23 clothing items and 23 cached photos. The initial test exposed that the deprecated category field can say Other for shoes and clothing. The collector now uses category_v2.display, with legacy fallback, and permits shirts/tops, sweaters, jackets/coats, jeans, pants, and shorts. Other categories, including seller introduction cards, are excluded. Regression tests cover the structured-category discrepancy.
+
+The Suggested cache retained 647 rows and an identical hash of IDs, source positions, last-seen timestamps, and batch IDs across collection. No Suggested ordering or batch metadata changed. The live test controller ran from the PC against Browserbase; the deployed API uses the same collector and existing hosted execution path. Physical phone testing of Browse seller remains a field check. Browserbase quota and saved-login expiry remain operational limits. An incomplete bounded batch is labeled partial; the app does not promise an entire large closet.
