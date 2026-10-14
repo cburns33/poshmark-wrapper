@@ -40,6 +40,11 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 .card-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 9px; }
 .card-action { flex: 1; min-width: 0; padding: 8px; color: #696660; font-size: .8125rem; }
 .card-action.selected { background: #eee1e2; border-color: #c9a8ab; color: #683b3f; }
+.seller-action { width: 100%; margin-top: 6px; font-size: .8125rem; }
+.listing-size { margin: 6px 0 0; font-size: .8125rem; color: #696660; }
+.seller-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding-bottom: 18px; font-size: .875rem; }
+.seller-nav p { margin: 0; }
+.seller-nav a { color: #683b3f; min-height: 44px; display: inline-flex; align-items: center; }
 .empty { padding: 80px 20px; text-align: center; color: #696660; }
 .empty h2 { font-family: Georgia, serif; font-weight: 400; color: #403d38; }
 .empty p { max-width: 440px; margin: auto; line-height: 1.6; }

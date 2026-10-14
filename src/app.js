@@ -18,6 +18,7 @@ let session;
 let listings = [];
 let listingState = new Map();
 let currentView = 'all';
+let currentSeller = null;
 let viewObserver;
 let viewedTimer;
 const pendingViewed = new Set();
@@ -27,7 +28,13 @@ const collection = collectionControls({
   button: document.getElementById('collect'),
   status: document.getElementById('collection-status'),
   client: () => supabase,
-  onComplete: loadFeed,
+  onComplete: async batch => {
+    if (currentSeller) { currentSeller.batchId = batch.id; currentSeller.username = batch.seller_username; }
+    await loadFeed();
+  },
+  request: useCache => currentSeller ? { listingId: currentSeller.poshmark_id, refresh: !useCache } : {},
+  scope: query => currentSeller ? query.eq('source', 'poshmark_seller').eq('seed_listing_id', currentSeller.poshmark_id) : query.eq('source', 'poshmark_suggested'),
+  label: () => currentSeller ? 'Update seller' : 'Get new picks',
 });
 
 function setPending(button, pending) {
@@ -48,7 +55,7 @@ new ResizeObserver(([entry]) => {
 function updateCounts() {
   const visible = listings.filter(item => !stateFor(item.poshmark_id).hidden_at);
   const savedCount = visible.filter(item => stateFor(item.poshmark_id).saved_at).length;
-  viewButtons.find(button => button.dataset.view === 'saved').textContent = `Saved${savedCount ? ` (${savedCount})` : ''}`;
+  if (!currentSeller) viewButtons.find(button => button.dataset.view === 'saved').textContent = `Saved${savedCount ? ` (${savedCount})` : ''}`;
   elements.summary.textContent = `${currentView === 'saved' ? `${savedCount} saved picks` : `${visible.length} picks`}${collectionSummary}`;
 }
 
@@ -57,7 +64,7 @@ function focusAfterRemoval(article, action) {
   article.remove();
   renderListings();
   const replacement = next && [...elements.grid.children].find(item => item.dataset.id === next.dataset.id);
-  (replacement?.querySelector(`[data-action="${action}"]`) || viewButtons.find(button => button.dataset.view === currentView)).focus({ preventScroll: true });
+  (replacement?.querySelector(`[data-action="${action}"]`) || viewButtons.find(button => button.dataset.view === currentView) || elements['feed-title']).focus({ preventScroll: true });
 }
 
 function showError(target, message) {
@@ -207,7 +214,18 @@ function card(listing) {
     }
   });
   actions.append(save, hide);
-  article.append(link, meta, title, actions, actionError);
+  const seller = document.createElement('button');
+  seller.type = 'button';
+  seller.className = 'seller-action';
+  seller.textContent = 'Browse seller';
+  seller.setAttribute('aria-label', `Browse seller of ${listing.title}`);
+  seller.hidden = Boolean(currentSeller);
+  seller.addEventListener('click', () => openSeller(listing));
+  const size = document.createElement('p');
+  size.className = 'listing-size';
+  size.textContent = listing.size ? `Size ${listing.size}` : '';
+  size.hidden = !currentSeller || !listing.size;
+  article.append(link, meta, title, size, actions, seller, actionError);
   observeCard(article, listing);
   return article;
 }
@@ -216,13 +234,16 @@ function renderListings() {
   viewObserver.disconnect();
   const visible = listings.filter(listing => {
     const state = stateFor(listing.poshmark_id);
-    return !state.hidden_at && (currentView === 'all' || state.saved_at);
+    return !state.hidden_at && (currentView !== 'saved' || state.saved_at) && (currentView !== 'all' || listing.source === 'poshmark_suggested');
   });
   elements.grid.replaceChildren(...visible.map(card));
   elements.empty.hidden = visible.length > 0;
   if (!visible.length && currentView === 'saved') {
     elements.empty.querySelector('h2').textContent = 'No saved picks yet.';
     elements.empty.querySelector('p').textContent = 'Tap Save on any listing to keep it here.';
+  } else if (currentSeller) {
+    elements.empty.querySelector('h2').textContent = 'No matching seller picks.';
+    elements.empty.querySelector('p').textContent = 'Men and your Poshmark sizes apply, along with your brand, price, and slim filters. Select Update seller to check again.';
   } else {
     elements.empty.querySelector('h2').textContent = 'Your next finds will appear here.';
     elements.empty.querySelector('p').textContent = 'Select Get new picks to replenish this feed.';
@@ -250,21 +271,35 @@ async function loadFeed() {
   elements.loading.hidden = false;
   elements.grid.setAttribute('aria-busy', 'true');
   elements.summary.textContent = 'Refreshing your collected listings…';
+  const sellerAtStart = currentSeller;
   try {
+    const fields = 'poshmark_id,title,brand,asking_price_cents,currency,size,listing_url,cover_image_path,availability,source,source_position,last_seen_at,seller_username';
+    let listingQuery = supabase.from('listings').select(fields).order('last_seen_at', { ascending: false }).order('source_position', { ascending: true }).limit(1000);
+    if (currentView === 'all') listingQuery = listingQuery.eq('source', 'poshmark_suggested');
+    if (currentSeller) listingQuery = currentSeller.batchId
+      ? supabase.from('seller_inventory').select(`source_position,listings(${fields})`).eq('batch_id', currentSeller.batchId).order('source_position', { ascending: true }).limit(200)
+      : Promise.resolve({ data: [], error: null });
     const [listingResult, rulesResult, stateResult, batchResult] = await Promise.all([
-      supabase.from('listings').select('poshmark_id,title,brand,asking_price_cents,currency,listing_url,cover_image_path,availability,source_position,last_seen_at').order('last_seen_at', { ascending: false }).order('source_position', { ascending: true }).limit(1000),
+      listingQuery,
       supabase.from('filter_rules').select('max_price_cents,blocked_brands,title_fallback').single(),
       supabase.from('user_listing_state').select('*').limit(1000),
-      supabase.from('collection_batches').select('listing_count,completed_at').in('status', ['complete', 'partial']).order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      currentSeller ? (currentSeller.batchId ? supabase.from('collection_batches').select('listing_count,completed_at').eq('id', currentSeller.batchId).maybeSingle() : Promise.resolve({ data: null, error: null }))
+        : supabase.from('collection_batches').select('listing_count,completed_at').eq('source', 'poshmark_suggested').in('status', ['complete', 'partial']).order('started_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
+    if (sellerAtStart !== currentSeller) return;
     for (const result of [listingResult, rulesResult, stateResult, batchResult]) if (result.error) throw result.error;
     listingState = new Map(stateResult.data.map(item => [item.poshmark_id, item]));
     const filter = createFilter(rulesResult.data);
-    const eligible = listingResult.data.filter(filter);
+    const rows = currentSeller ? listingResult.data.map(item => item.listings).filter(Boolean) : listingResult.data;
+    const eligible = rows.filter(filter);
     const imageUrls = await signedImages(eligible);
     listings = eligible.map(item => ({ ...item, signed_image_url: imageUrls.get(item.cover_image_path) }));
     const updated = batchResult.data?.completed_at ? new Date(batchResult.data.completed_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : null;
-    elements.rules.textContent = `Up to ${dollars.format(rulesResult.data.max_price_cents / 100)} · ${rulesResult.data.blocked_brands.length} brands excluded · Poshmark's suggested order`;
+    elements.rules.textContent = `Up to ${dollars.format(rulesResult.data.max_price_cents / 100)} · ${rulesResult.data.blocked_brands.length} brands excluded · ${currentSeller ? 'Men · My Sizes · No slim titles' : "Poshmark's suggested order"}`;
+    elements['feed-title'].textContent = currentSeller ? `${currentSeller.username || 'Seller'}’s picks` : 'Poshmark picks';
+    document.title = currentSeller ? 'Seller picks · Poshmark picks' : `${currentView === 'saved' ? 'Saved' : 'All picks'} · Poshmark picks`;
+    document.getElementById('seller-original').href = currentSeller?.username ? `https://poshmark.com/closet/${currentSeller.username}?department=Men&my_size=true&availability=available` : '#';
+    document.getElementById('seller-original').hidden = !currentSeller?.username;
     collectionSummary = ` from ${batchResult.data?.listing_count ?? listingResult.data.length} collected${updated ? ` · Updated ${updated}` : ''}`;
     renderListings();
   } catch {
@@ -281,6 +316,24 @@ async function loadFeed() {
   }
 }
 
+async function openSeller(listing) {
+  if (elements.reload.getAttribute('aria-disabled') === 'true') return;
+  currentSeller = { poshmark_id: listing.poshmark_id, username: listing.seller_username };
+  currentView = 'seller';
+  collection.stop();
+  listings = [];
+  collectionSummary = '';
+  document.getElementById('seller-nav').hidden = false;
+  viewButtons.forEach(button => { button.classList.remove('active'); button.setAttribute('aria-pressed', 'false'); });
+  renderListings();
+  elements['feed-title'].textContent = 'Seller picks';
+  elements.rules.textContent = 'Men · Your Poshmark sizes · Your brand, price, and slim filters';
+  document.title = 'Seller picks · Poshmark picks';
+  document.getElementById('seller-original').hidden = true;
+  elements['feed-title'].focus();
+  await collection.start(true);
+}
+
 async function showSession(nextSession) {
   const changedAccount = session !== undefined && session?.user.id !== nextSession?.user.id;
   session = nextSession;
@@ -292,6 +345,9 @@ async function showSession(nextSession) {
     await loadFeed();
   }
   else {
+    currentSeller = null;
+    currentView = 'all';
+    document.getElementById('seller-nav').hidden = true;
     collection.stop();
     elements.grid.replaceChildren();
     listings = [];
@@ -351,7 +407,7 @@ elements['undo-hide'].addEventListener('click', async () => {
     elements['action-status'].textContent = 'Hidden item restored.';
     if (!hiddenHistory.length) {
       const restored = [...elements.grid.children].find(item => item.dataset.id === hidden.id);
-      (restored?.querySelector('[data-action="save"]') || viewButtons.find(item => item.dataset.view === currentView)).focus();
+      (restored?.querySelector('[data-action="save"]') || viewButtons.find(item => item.dataset.view === currentView) || elements['feed-title']).focus();
     }
   } catch {
     elements['undo-message'].textContent = 'Restore failed. Check your connection and try Undo Hide again.';
@@ -375,6 +431,11 @@ elements['sign-out'].addEventListener('click', async () => {
   }
 });
 viewButtons.forEach(button => button.addEventListener('click', () => {
+  if (elements.reload.getAttribute('aria-disabled') === 'true') return;
+  const leavingSeller = Boolean(currentSeller);
+  currentSeller = null;
+  if (leavingSeller) collection.stop();
+  document.getElementById('seller-nav').hidden = true;
   currentView = button.dataset.view;
   document.title = `${currentView === 'saved' ? 'Saved' : 'All picks'} · Poshmark picks`;
   viewButtons.forEach(item => {
@@ -382,7 +443,8 @@ viewButtons.forEach(button => button.addEventListener('click', () => {
     item.classList.toggle('active', active);
     item.setAttribute('aria-pressed', String(active));
   });
-  renderListings();
+  if (leavingSeller || currentView === 'saved') loadFeed();
+  else renderListings();
 }));
 
 viewObserver = new IntersectionObserver(entries => {

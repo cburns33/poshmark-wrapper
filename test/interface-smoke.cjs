@@ -13,7 +13,7 @@ const listings = [
   { poshmark_id: 'three', title: 'Cotton cardigan with a very long unbroken reference ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', brand: null, asking_price_cents: 1900, cover_image_path: null },
   { poshmark_id: 'four', title: 'Blocked item', brand: 'SHEIN', asking_price_cents: 1000 },
   { poshmark_id: 'five', title: 'Over budget', brand: 'J.Crew', asking_price_cents: 15001 },
-].map((item, index) => ({ ...item, owner_id: owner, currency: 'USD', availability: 'available', listing_url: `https://poshmark.com/listing/${item.poshmark_id}`, source_position: index, last_seen_at: '2026-10-09T12:00:00Z' }));
+].map((item, index) => ({ ...item, owner_id: owner, currency: 'USD', availability: 'available', source: 'poshmark_suggested', listing_url: `https://poshmark.com/listing/${item.poshmark_id}`, source_position: index, last_seen_at: '2026-10-09T12:00:00Z' }));
 
 async function audit(page, name) {
   await page.evaluate(axe.source);
@@ -34,7 +34,17 @@ async function audit(page, name) {
     let releaseLoad;
     let batch = { id: 1, status: 'complete', listing_count: 5, completed_at: '2026-10-09T12:00:00Z' };
     let collectionRequests = 0;
+    let sellerBatch = { id: 4, status: 'complete', seller_username: 'fixture_seller', listing_count: 2, completed_at: new Date().toISOString() };
+    const sellerItems = [
+      { ...listings[0], poshmark_id: 'seller-item', title: 'Large wool shirt', size: 'L', source: 'poshmark_seller' },
+      { ...listings[1], poshmark_id: 'seller-slim', title: 'Slim fit shirt', size: 'L', source: 'poshmark_seller' },
+    ];
     await context.route('**/api/collect', route => {
+      const body = route.request().postDataJSON();
+      if (body?.listingId) {
+        assert.equal(body.listingId, 'one');
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ batchId: 4 }) });
+      }
       collectionRequests++;
       assert.equal(route.request().headers().authorization, 'Bearer fixture-access-token');
       batch = { id: 2, status: 'collecting', started_at: new Date().toISOString(), listing_count: 0 };
@@ -67,11 +77,12 @@ async function audit(page, name) {
       if (table === 'listings') {
         if (mode === 'loading') await new Promise(resolve => { releaseLoad = resolve; });
         if (mode === 'error') return reply({ message: 'Fixture load failure' }, 503);
-        return reply(mode === 'empty' ? [] : listings);
+        return reply(mode === 'empty' ? [] : url.searchParams.get('source') ? listings : [...listings, ...sellerItems]);
       }
+      if (table === 'seller_inventory') return reply(sellerItems.map((listing, source_position) => ({ source_position, listings: listing })));
       if (table === 'filter_rules') return reply({ max_price_cents: 15000, blocked_brands: ['SHEIN'], title_fallback: true });
       if (table === 'user_listing_state') return reply([...state.values()]);
-      if (table === 'collection_batches') return reply(batch);
+      if (table === 'collection_batches') return reply(url.searchParams.get('id') === 'eq.4' || url.searchParams.get('source') === 'eq.poshmark_seller' ? sellerBatch : batch);
       throw new Error(`Unexpected fixture request: ${table}`);
     });
     await page.addInitScript(({ origin, ownerId }) => {
@@ -103,6 +114,27 @@ async function audit(page, name) {
       console.log(JSON.stringify({ audits, controls: await page.locator('.card-action').first().evaluate(e => ({ height: e.getBoundingClientRect().height })), pageErrors }));
       return;
     }
+    await page.locator('[data-id="one"] .seller-action').click();
+    await page.locator('[data-id="seller-item"]').waitFor();
+    assert.equal(await page.locator('.card').count(), 1, 'Seller view applies the slim filter');
+    assert.match(await page.locator('#rules').innerText(), /Men.*My Sizes/);
+    assert.equal(await page.locator('#collect').innerText(), 'Update seller');
+    assert.match(await page.locator('#seller-original').getAttribute('href'), /fixture_seller.*my_size=true/);
+    assert.equal(await page.locator('[data-id="seller-item"] .listing-size').innerText(), 'Size L');
+    audits.push(await audit(page, 'seller'));
+    await page.locator('[data-id="seller-item"] [data-action="save"]').click();
+    await page.waitForFunction(() => document.querySelector('[data-id="seller-item"] [data-action="save"]')?.getAttribute('aria-pressed') === 'true');
+    assert.ok(state.get('seller-item').saved_at, 'Seller items share saved state');
+    await page.locator('[data-id="seller-item"] [data-action="hide"]').click();
+    await page.waitForFunction(() => document.querySelectorAll('.card').length === 0);
+    assert.match(await page.locator('#empty h2').innerText(), /No matching seller/);
+    await page.locator('#undo-hide').click();
+    await page.locator('[data-id="seller-item"]').waitFor();
+    await page.locator('[data-id="seller-item"] [data-action="save"]').click();
+    await page.waitForFunction(() => document.querySelector('[data-id="seller-item"] [data-action="save"]')?.getAttribute('aria-pressed') === 'false');
+    await page.locator('[data-view="all"]').click();
+    await page.locator('[data-id="one"]').waitFor();
+    assert.equal(await page.locator('.card').count(), 3, 'Seller items stay out of All picks');
     assert.equal(await page.locator('.card').count(), 3, 'Filters retain inclusive $150 cap and unfamiliar brands');
     const save = page.locator('[data-id="one"] [data-action="save"]');
     await save.press('Space');
@@ -111,6 +143,7 @@ async function audit(page, name) {
     assert.ok(state.get('one').saved_at, 'Save writes state');
     assert.equal(await page.locator('#summary').innerText().then(t => t.startsWith('3 picks')), true);
     await page.locator('[data-view="saved"]').click();
+    await page.waitForFunction(() => document.querySelectorAll('.card').length === 1);
     assert.equal(await page.locator('.card').count(), 1);
     await save.press('Space');
     await page.locator('#empty').waitFor();

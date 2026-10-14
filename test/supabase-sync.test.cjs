@@ -9,6 +9,21 @@ const env = {
   SUPABASE_USER_ID: ownerId
 };
 
+test('seller imports retain Suggested ordering and write a separate inventory snapshot', async () => {
+  const id = 'c'.repeat(24);
+  const requests = [];
+  const prior = { poshmark_id: id, first_seen_at: '2026-10-01T00:00:00Z', cover_image_path: 'old.jpg', source: 'poshmark_suggested', source_position: 12, last_batch_id: 3, last_seen_at: '2026-10-09T00:00:00Z' };
+  const fetchImpl = async (url, options) => {
+    requests.push({ url, options });
+    return url.includes('&select=poshmark_id') ? Response.json([prior]) : new Response('', { status: 201 });
+  };
+  await syncToSupabase({ records: [{ id, title: 'Wool shirt', asking_price: 50, source: 'poshmark_seller', source_position: 0, first_seen_at: '2026-10-14T00:00:00Z', last_seen_at: '2026-10-14T00:00:00Z' }], directory: '.', env, fetchImpl, batchId: 9, preserveExisting: true, syncRules: false, sellerUsername: 'seller' });
+  const row = JSON.parse(requests[1].options.body)[0];
+  for (const key of ['source', 'source_position', 'last_batch_id', 'last_seen_at']) assert.equal(row[key], prior[key]);
+  assert.equal(row.seller_username, 'seller');
+  assert.deepEqual(JSON.parse(requests[2].options.body), [{ owner_id: ownerId, batch_id: 9, poshmark_id: id, source_position: 0 }]);
+});
+
 test('cloud configuration is optional but rejects partial settings', () => {
   assert.equal(loadConfig({}), null);
   assert.throws(() => loadConfig({ SUPABASE_URL: env.SUPABASE_URL }), /SUPABASE_SECRET_KEY/);

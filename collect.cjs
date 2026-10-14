@@ -105,6 +105,7 @@ async function main(options = {}) {
           asking_price: asking, currency: post?.price_amount?.currency_code ?? (card.asking?.startsWith('$') ? 'USD' : null),
           cover_image: post?.cover_shot?.url ?? card.image ?? null,
           size: card.size ?? post?.size ?? null, availability: post?.inventory?.status ?? null,
+          seller_username: post?.creator_username ?? null,
           source: 'poshmark_suggested', observed_at: new Date().toISOString(), image_file: null
         };
         collected.set(card.id, record);
@@ -163,4 +164,4 @@ async function main(options = {}) {
   }
 }
 if (require.main === module) main();
-module.exports = { feedPosts, collect: main };
+module.exports = { feedPosts, collect: main, cacheImage };
